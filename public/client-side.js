@@ -1,7 +1,6 @@
-const api_key = "your-api-key-here"
-const cloud_name = "your-cloud-name-here"
-// It's okay for these to be public on client-side JS
-// You just don't ever want to leak your API Secret
+const api_key = "776864232541471"
+const cloud_name = "dixygtlro"
+
 
 document.querySelector("#upload-form").addEventListener("submit", async function (e) {
   e.preventDefault()
@@ -32,3 +31,4 @@ document.querySelector("#upload-form").addEventListener("submit", async function
 
   axios.post("/do-something-with-photo", photoData)
 })
+
