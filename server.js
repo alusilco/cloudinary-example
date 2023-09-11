@@ -1,11 +1,24 @@
+//dotenv es una biblioteca  que carga las variables de entorno
 require("dotenv").config()
+//express es un framework de Node.js
 const express = require("express")
+//biblioteca cloudinary
 const cloudinary = require("cloudinary").v2
+//fs-extra es un módulo, extensión de fs de Node.js y proporciona funciones adicionales a las de fs
 const fse = require("fs-extra")
+//definición de rutas
 const app = express()
+
+// determinación de archivos dsponibles para el cliente
 app.use(express.static("public"))
+
+//Este middleware de Express se utiliza para analizar y procesar datos de formularios codificados en la solicitud HTTP.
+// Habilita a la aplicación para comprender y manejar solicitudes con datos de formulario.
 app.use(express.json())
+//middleware codificación de datos
 app.use(express.urlencoded({ extended: false }))
+
+//configuación del entorno cloudinary, solicitud http
 
 const cloudinaryConfig = cloudinary.config({
   cloud_name: process.env.CLOUDNAME,
@@ -14,6 +27,7 @@ const cloudinaryConfig = cloudinary.config({
   secure: true
 })
 
+//Autenticación de usuario
 function passwordProtected(req, res, next) {
   res.set("WWW-Authenticate", "Basic realm='Cloudinary Front-end Upload'")
   if (req.headers.authorization == "Basic YWRtaW46YWRtaW4=") {
@@ -25,6 +39,7 @@ function passwordProtected(req, res, next) {
 
 app.use(passwordProtected)
 
+//Solicitud GET, se genera la respuesta HTML
 app.get("/", (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -52,6 +67,7 @@ app.get("/", (req, res) => {
 </html>`)
 })
 
+
 app.get("/get-signature", (req, res) => {
   const timestamp = Math.round(new Date().getTime() / 1000)
   const signature = cloudinary.utils.api_sign_request(
@@ -63,9 +79,9 @@ app.get("/get-signature", (req, res) => {
   res.json({ timestamp, signature })
 })
 
+//POST
 app.post("/do-something-with-photo", async (req, res) => {
-  // based on the public_id and the version that the (potentially malicious) user is submitting...
-  // we can combine those values along with our SECRET key to see what we would expect the signature to be if it was innocent / valid / actually coming from Cloudinary
+
   const expectedSignature = cloudinary.utils.api_sign_request({ public_id: req.body.public_id, version: req.body.version }, cloudinaryConfig.api_secret)
 
   // We can trust the visitor's data if their signature is what we'd expect it to be...
@@ -78,6 +94,9 @@ app.post("/do-something-with-photo", async (req, res) => {
     await fse.outputFile("./data.txt", existingData + req.body.public_id + "\n")
   }
 })
+
+//Esta ruta GET ("/view-photos") se utiliza para mostrar una lista de fotos cargadas.
+//El código dentro de esta ruta hace lo siguiente:
 
 app.get("/view-photos", async (req, res) => {
   await fse.ensureFile("./data.txt")
@@ -102,6 +121,8 @@ app.get("/view-photos", async (req, res) => {
   `)
 })
 
+
+//Proceso de borrado
 app.post("/delete-photo", async (req, res) => {
   // do whatever you need to do in your database etc...
   await fse.ensureFile("./data.txt")
@@ -114,7 +135,7 @@ app.post("/delete-photo", async (req, res) => {
       .join("\n")
   )
 
-  // actually delete the photo from cloudinary
+  //Vista de las fotos subidad
   cloudinary.uploader.destroy(req.body.id)
 
   res.redirect("/view-photos")

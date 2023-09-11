@@ -1,34 +1,47 @@
-const api_key = "776864232541471"
-const cloud_name = "dixygtlro"
-
+const api_key = "776864232541471";
+const cloud_name = "dixygtlro";
 
 document.querySelector("#upload-form").addEventListener("submit", async function (e) {
-  e.preventDefault()
+  e.preventDefault();
 
-  // get signature. In reality you could store this in localstorage or some other cache mechanism, it's good for 1 hour
-  const signatureResponse = await axios.get("/get-signature")
+  // Resto del código para cargar la imagen
 
-  const data = new FormData()
-  data.append("file", document.querySelector("#file-field").files[0])
-  data.append("api_key", api_key)
-  data.append("signature", signatureResponse.data.signature)
-  data.append("timestamp", signatureResponse.data.timestamp)
+  try {
+    // Obtener la firma (signature) de Cloudinary
+    const signatureResponse = await axios.get("/get-signature");
 
-  const cloudinaryResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, data, {
-    headers: { "Content-Type": "multipart/form-data" },
-    onUploadProgress: function (e) {
-      console.log(e.loaded / e.total)
+    const data = new FormData();
+    data.append("file", document.querySelector("#file-field").files[0]);
+    data.append("api_key", api_key);
+    data.append("signature", signatureResponse.data.signature);
+    data.append("timestamp", signatureResponse.data.timestamp);
+
+    // Realizar la carga de la imagen a Cloudinary
+    const cloudinaryResponse = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: function (e) {
+        console.log(e.loaded / e.total);
+      },
+    });
+
+    // Verificar si la carga se completó exitosamente
+    if (cloudinaryResponse.data && cloudinaryResponse.data.public_id) {
+      // Mostrar una alerta de éxito
+      alert("¡La foto se ha subido exitosamente!");
+
+      // Resto del código para procesar la respuesta de Cloudinary y enviar información al servidor
+      const photoData = {
+        public_id: cloudinaryResponse.data.public_id,
+        version: cloudinaryResponse.data.version,
+        signature: cloudinaryResponse.data.signature,
+      };
+      axios.post("/do-something-with-photo", photoData);
+    } else {
+      // Mostrar una alerta de error si la carga falla
+      alert("Hubo un problema al subir la foto. Inténtalo de nuevo.");
     }
-  })
-  console.log(cloudinaryResponse.data)
-
-  // send the image info back to our server
-  const photoData = {
-    public_id: cloudinaryResponse.data.public_id,
-    version: cloudinaryResponse.data.version,
-    signature: cloudinaryResponse.data.signature
+  } catch (error) {
+    console.error("Error al subir la foto:", error);
   }
-
-  axios.post("/do-something-with-photo", photoData)
-})
+});
 
